@@ -1,39 +1,24 @@
 from openai import OpenAI
 import telebot
 
-token = 'YOUR_BOT_TOKEN'
-bot = telebot.TeleBot(token)
+from config_reader import config
+from handlers import commands
 
-client = OpenAI(
-    base_url="BASE_URL_FROM_OPENROUTER",
-    api_key="API_KEY_OF_CLIENT",
+
+bot = telebot.TeleBot(
+    token=config.BOT_TOKEN.get_secret_value()
 )
 
-@bot.message_handler(commands=['start'])
-def start(message):
-    bot.reply_to(message, "Hi! \n"
-                          "I'm your artificial assistant. What do you want to know today? \n"
-                          "To ask a question, follow the instructions: /tell <question>")
+client = OpenAI(
+    base_url=config.BASE_URL_FROM_OPENROUTER.get_secret_value(),
+    api_key=config.API_KEY_OF_CLIENT.get_secret_value(),
+)
 
-@bot.message_handler(commands=['tell'])
-def tell(message):
-    question = message.text.split(' ', 1)[1]
-    completion = client.chat.completions.create(
-        extra_headers={
-            "HTTP-Referer": "API_KEY_OF_CLIENT",
-            "X-Title": "Tg_Bot",
-        },
-        extra_body={},
-        model="API_OF_MODEL",
-        messages=[
-          {
-            "role": "user",
-            "content": f"{question}"
-          }
-        ]
-    )
-    bot.reply_to(message, completion.choices[0].message.content)
+def main():
 
-bot.polling(none_stop=True)
+    commands.register_handlers(bot, client, config)
 
+    return bot.polling(none_stop=True)
 
+if __name__ == '__main__':
+    main()
